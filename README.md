@@ -1,45 +1,92 @@
 # Registro de notas
 
-API en Node/Express y front en React que registran estudiantes y calculan promedio y aprobados.
+API en Node/Express y front en React que registran estudiantes, calculan el promedio del grupo y cuántos aprobaron. Hecho para el curso de Buenas Prácticas de Desarrollo de Software (CUC).
 
 ## Integrantes
-- Nombre Apellido 1 — (de que se encargo)
-- Nombre Apellido 2 — (de que se encargo)
-- Nombre Apellido 3 — (de que se encargo)
+- José Miguel Castro — trabajo individual: back-end en Node/Express, front-end en React, pruebas con Vitest, control de versiones (ramas y Pull Requests), documentación y despliegue en AWS.
 
-## Tecnologias
-React (Vite), Node, Express, Vitest, AWS S3 y EC2.
+## Tecnologías
+React 18 con Vite, Node.js, Express, Vitest, AWS S3 (front) y AWS EC2 (API).
 
-## Como levantarlo en local
+## Estructura del proyecto
 ```
-git clone <url>
-cd proyecto/api   && cp .env.example .env && npm install && npm run dev
-cd proyecto/front && npm install && npm run dev
+proyecto/
+  api/
+    src/
+      servidor.js            levanta Express
+      app.js                 configura CORS, JSON y rutas
+      rutas/estudiantes.js   solo recibe y responde
+      logica/reglas-notas.js reglas del negocio, sin req ni res
+      datos/repositorio.js   de donde salen y donde se guardan los datos
+      middleware/            registro de peticiones
+      utilidades/            formato de respuesta compartido
+  front/
+    src/
+      api.js                 única ubicación de la dirección de la API
+      components/            Tarjeta, FilaEstudiante, Formulario
+      App.jsx
 ```
+
+## Cómo levantarlo en local
+```
+git clone https://github.com/josemcastrom91/proyecto-final-bp.git
+cd proyecto-final-bp/api
+copy .env.example .env
+npm install
+npm run dev
+```
+En otra terminal:
+```
+cd proyecto-final-bp/front
+npm install
+npm run dev
+```
+La API queda en http://localhost:3000 y el front en http://localhost:5173.
+
 Variables de entorno:
-- `api/.env`: `PORT` (3000) y `FRONT_URL` (origen permitido por CORS; local: http://localhost:5173).
-- `front/.env.development` / `front/.env.production`: `VITE_API_URL` (direccion de la API). Plantilla en `front/.env.example`.
+- `api/.env`: `PORT` (puerto de la API, 3000) y `FRONT_URL` (único origen que permite CORS; en local http://localhost:5173, en producción la URL del bucket S3). Plantilla en `api/.env.example`.
+- `front/.env.development` y `front/.env.production`: `VITE_API_URL` (dirección de la API). Plantilla en `front/.env.example`. El `.env.production` no se sube a Git.
 
 ## Endpoints de la API
-| Metodo | Ruta | Que hace | Respuesta |
+| Método | Ruta | Qué hace | Respuesta |
 |---|---|---|---|
-| GET | /estudiantes | Lista todos los estudiantes (con `aprobado` ya calculado) | 200 · arreglo |
-| GET | /estudiantes/resumen | Promedio, aprobados, total y nota minima | 200 · objeto |
-| POST | /estudiantes | Agrega uno. Requiere `nombre` y `nota` (0 a 5) | 201 · el creado / 400 · datos invalidos |
+| GET | /estudiantes | Lista todos los estudiantes, cada uno con `aprobado` ya calculado | 200 · arreglo |
+| GET | /estudiantes/resumen | Promedio, aprobados, total y nota mínima | 200 · objeto |
+| POST | /estudiantes | Agrega uno. Requiere `nombre` y `nota` (entre 0 y 5) | 201 · el creado / 400 · datos inválidos con mensaje |
 
-## Como correr las pruebas
+Cualquier otra ruta responde 404.
+
+## Cómo correr las pruebas
 ```
-cd api && npm test
+cd api
+npm test
 ```
+Son 13 pruebas sobre las reglas del negocio (`api/src/logica/reglas-notas.test.js`), incluidos casos límite: la nota exacta de 3.0, lista vacía, notas frontera 0 y 5 y datos inválidos.
 
 ## Despliegue
-- Front: `npm run build` en `front/` y subir el contenido de `dist/` al bucket S3 (URL: ...).
-- API: EC2 (IP: ...), Security Group con una sola regla de entrada (puerto 3000), CORS restringido al bucket.
-- Pasos para redesplegar: ver la guia de la Unidad 3, seccion 3.5.
-
-## Seguridad: npm audit
-- api: (pegar aqui lo que reporto `npm audit` y que se decidio).
-- front: (pegar aqui lo que reporto `npm audit` y que se decidio).
+- Front: `npm run build` en `front/` y se sube el contenido de `dist/` al bucket S3 con hosting estático. URL: (pendiente).
+- API: instancia EC2 con Ubuntu, que clona la rama `main` y corre como servicio de systemd. IP pública: (pendiente).
+- Security Group con una sola regla de entrada: TCP 3000. SSH cerrado.
+- CORS restringido a la URL del bucket mediante `FRONT_URL`.
+- Un segundo bucket privado responde 403 a cualquier acceso externo.
+- Para volver a desplegar: ajustar `VITE_API_URL` en `front/.env.production`, repetir el build y volver a subir `dist/`; en la API, reiniciar el servicio con `sudo systemctl restart api`.
+- Al terminar las pruebas, los recursos se cierran: instancia terminada y sin Elastic IP reservada.
 
 ## DRY
-La nota minima (3.0) vive solo en `api/src/logica/reglas-notas.js`. El back devuelve `aprobado` ya resuelto y el front solo lo muestra.
+| Regla repetida | Dónde vive ahora | Archivos a tocar si cambia |
+|---|---|---|
+| Nota mínima aprobatoria (3.0) | `api/src/logica/reglas-notas.js`; el back devuelve `aprobado` y el front solo lo muestra | 1 |
+| Dirección de la API | `front/.env.*`, leída una sola vez en `front/src/api.js` | 1 |
+| Formato de respuesta HTTP | `api/src/utilidades/responder.js` | 1 |
+| Tarjeta del resumen | `front/src/components/Tarjeta.jsx`, usada 3 veces | 1 |
+| Registro de peticiones | `api/src/middleware/registrar.js`, aplicado a todas las rutas | 1 |
+
+## Seguridad
+- Validación en el servidor: el POST valida nombre, nota numérica y rango 0 a 5, y responde 400 con un mensaje claro.
+- Secretos fuera de Git: `.env` y `.env.production` están en `.gitignore`; el repositorio solo trae `.env.example`.
+- CORS restringido a un único origen.
+- Security Group mínimo: solo el puerto de la API.
+- `npm audit`:
+  - front: 6 vulnerabilidades (3 moderate, 1 high, 2 critical), todas en dependencias de desarrollo (vitest, vite, esbuild, tinypool), que no van dentro del build publicado en S3. Con `npm audit --omit=dev`: RESULTADO.
+  - api: `npm audit` reporta RESULTADO. Con `npm audit --omit=dev`: RESULTADO.
+  - Decisión: no se aplica `npm audit fix --force` porque instala versiones con cambios incompatibles que podrían romper las pruebas. Queda registrado para una actualización planificada de vitest y vite.
