@@ -1,0 +1,21 @@
+:root { --tinta:#1d2a2e; --papel:#f6f7f5; --linea:#cfd6d3; --verde:#1f6f4a; --rojo:#a8322d; --azul:#244c6b; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--papel); color:var(--tinta); font-family:'Segoe UI',system-ui,sans-serif; }
+main { max-width:720px; margin:0 auto; padding:2rem 1rem 4rem; }
+h1 { font-size:2rem; margin:0 0 1.5rem; }
+.resumen { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:2rem; }
+.tarjeta { display:flex; flex-direction:column; gap:.25rem; padding:1rem; border:1px solid var(--linea); border-left:4px solid var(--azul); background:#fff; }
+.tarjeta-titulo { font-size:.9rem; color:#55656a; }
+.tarjeta-valor { font-size:1.9rem; }
+.tarjeta-detalle { font-size:.8rem; color:#55656a; }
+table { width:100%; border-collapse:collapse; background:#fff; margin-bottom:2rem; }
+th, td { padding:.65rem .8rem; border-bottom:1px solid var(--linea); text-align:left; }
+.num { text-align:right; font-variant-numeric:tabular-nums; }
+.estado.ok { color:var(--verde); font-weight:600; }
+.estado.no { color:var(--rojo); font-weight:600; }
+.formulario { display:flex; flex-wrap:wrap; gap:1rem; align-items:end; }
+.formulario label { display:flex; flex-direction:column; gap:.3rem; font-size:.9rem; }
+input { padding:.5rem; border:1px solid var(--linea); font:inherit; }
+button { padding:.6rem 1rem; background:var(--azul); color:#fff; border:0; font:inherit; cursor:pointer; }
+button:focus-visible, input:focus-visible { outline:3px solid #e0a800; outline-offset:2px; }
+.error { flex-basis:100%; color:var(--rojo); margin:0; }
